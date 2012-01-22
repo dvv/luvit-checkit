@@ -101,7 +101,7 @@ end
 
 local function is_callable(a)
   -- N.B: anything supporting __call
-  -- FIXME: __call should itself be callable :)
+  -- N.B: __call should itself be callable :)
   return type(a) == 'function' or (a ~= nil and is_callable((Debug.getmetatable(a) or {}).__call))
 end
 A.is_callable = is_callable
