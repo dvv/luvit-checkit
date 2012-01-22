@@ -1,9 +1,11 @@
 return {
-  name = 'curl',
+  name = 'checkit',
   version = '0.0.1',
-  description = "HTTP request for Luvit",
+  description = "A simple test runner for Luvit",
   author = "Vladimir Dronnikov <dronnikov@gmail.com>",
   dependencies = {
   },
-  main = "curl.lua",
+  bin = {
+    checkit = "./checkit",
+  },
 }
