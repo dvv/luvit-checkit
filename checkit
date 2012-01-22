@@ -24,7 +24,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local Utils = require('utils')
 local Table = require('table')
 local Debug = require('debug')
-local Fs = require('fs')
+local UV = require('uv')
 local Path = require('path')
 
 local A = { }
@@ -157,18 +157,20 @@ local function run(tests, callback)
     -- compose testing context
     local tried = 0
     local errors = { }
+    local started_at = UV.now()
     local ctx = {
       -- raw assertions, returning booleans
       h = A,
       -- must be called at the end of test
       done = function ()
+        local elapsed_time = UV.now() - started_at
         -- print test summary
         local color = 'green'
         if #errors > 0 then
           color = 'red'
           exit_code = 1
         end
-        local str = ('%s: %d/%d'):format(name, tried, tried + #errors)
+        local str = ('%s: %d/%d within %.3f seconds'):format(name, tried, tried + #errors, 0.001 * elapsed_time)
         print(true and Utils.colorize(color, str) or str)
         for i, err in ipairs(errors) do
           print(err)
