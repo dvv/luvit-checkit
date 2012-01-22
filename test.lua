@@ -1,5 +1,11 @@
 local exports = { }
 
+exports['asserts_helpers'] = function (test)
+  test.equal(test.h.ok(true), true)
+  test.equal(test.h.throws(foo), true)
+  test.done()
+end
+
 exports['asserts_ok'] = function (test)
   test.ok(true)
   test.not_ok(not true)
