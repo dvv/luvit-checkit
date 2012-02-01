@@ -1,7 +1,7 @@
 all: test
 
 test:
-	./checkit test.lua
+	./checkit tests/smoke.lua
 
 .PHONY: all test
 .SILENT:

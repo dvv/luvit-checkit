@@ -13,4 +13,4 @@ $ checkit file...
 License
 -----
 
-[MIT](checkit/license.txt)
+[MIT](luvit-checkit/license.txt)
