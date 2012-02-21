@@ -24,7 +24,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local Utils = require('utils')
 local Table = require('table')
 local Debug = require('debug')
-local UV = require('uv')
+local UV = require('uv_native')
 local Path = require('path')
 
 local A = { }
@@ -188,6 +188,7 @@ local function run(tests, callback)
         if v(...) then
           tried = tried + 1
         else
+          p(...)
           local info = Debug.getinfo(2)
           Table.insert(errors, ('%s:%s: assertion "%s" failed'):format(info.short_src, info.currentline, k))
         end
