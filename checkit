@@ -38,8 +38,9 @@ A.ok = function(a)
 end
 
 local function equal(a, b)
-  --if a == b then return true end
-  if type(a) == 'table' and type(b) == 'table' then
+  if a == b then
+    return true
+  elseif type(a) == 'table' and type(b) == 'table' then
     -- compare array part
     for k, v in ipairs(a) do
       if not equal(v, b[k]) then return false end
@@ -56,7 +57,7 @@ local function equal(a, b)
     end
     return true
   else
-    return a == b
+    return false
   end
 end
 A.equal = equal

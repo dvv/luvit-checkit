@@ -17,6 +17,12 @@ exports['asserts_equal'] = function (test)
   test.not_equal(2, 1)
   test.equal({1,2,3, foo = 'foo', bar = { 'baz' }}, {bar = { 'baz' }, 1,2,3, foo = 'foo'})
   test.not_equal({1,2,3, foo = 'foo', bar = { 'baz' }}, {bar = { 'baz' }, 1,3,2, foo = 'foo'})
+
+  local a = {}
+  a[1] = a
+  local b = a
+  test.equal(a, b)
+
   test.done()
 end
 
