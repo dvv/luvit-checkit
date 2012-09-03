@@ -1,4 +1,4 @@
-#!/usr/bin/env luvit
+#!/usr/bin/env lua
 
 --[[
 Copyright (c) 2012 Vladimir Dronnikov <dronnikov@gmail.com>
@@ -21,11 +21,14 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ]]--
 
-local Utils = require('utils')
-local Table = require('table')
-local Debug = require('debug')
-local UV = require('uv_native')
-local Path = require('path')
+local table = require('table')
+local debug = require('debug')
+local os = require('os')
+
+local function now()
+  -- TODO: need to be of higher precision
+  return os.time()
+end
 
 local A = { }
 
@@ -42,11 +45,11 @@ local function equal(a, b)
     return true
   elseif type(a) == 'table' and type(b) == 'table' then
     -- compare array part
-    for k, v in ipairs(a) do
-      if not equal(v, b[k]) then return false end
+    for i = 1, #a do
+      if not equal(a[i], b[i]) then return false end
     end
-    for k, v in ipairs(b) do
-      if not equal(v, a[k]) then return false end
+    for i = 1, #b do
+      if not equal(b[i], a[i]) then return false end
     end
     -- compare hash part
     for k, v in pairs(a) do
@@ -94,7 +97,7 @@ end
 
 A.is_hash = function(a)
   if not A.is_table(a) then return false end
-  for k, v in ipairs(a) do
+  for i = 1, #a do
     return false
   end
   return true
@@ -103,7 +106,8 @@ end
 local function is_callable(a)
   -- N.B: anything supporting __call
   -- N.B: __call should itself be callable :)
-  return type(a) == 'function' or (a ~= nil and is_callable((Debug.getmetatable(a) or {}).__call))
+  return type(a) == 'function'
+      or (a ~= nil and is_callable((debug.getmetatable(a) or {}).__call))
 end
 A.is_callable = is_callable
 
@@ -116,9 +120,15 @@ end
 -- define not_* assertions
 --
 
-for k, v in pairs(A) do
-  A['not_' .. k] = function (...)
-    return not v(...)
+do
+  local not_A = { }
+  for k, v in pairs(A) do
+    not_A['not_' .. k] = function (...)
+      return not v(...)
+    end
+  end
+  for k, v in pairs(not_A) do
+    A[k] = v
   end
 end
 
@@ -132,8 +142,6 @@ assert(A.is_nil(nil))
 assert(A.throws(foo))
 assert(not A.ok(A.is_nil(1)))
 
-
-
 --
 -- runner
 --
@@ -141,9 +149,10 @@ assert(not A.ok(A.is_nil(1)))
 local function run(tests, callback)
 
   -- sanity
-  if not tests then tests = { } end
+  tests = tests or { }
 
   local exit_code = 0
+
   -- count tests
   local ntests = 0
   for name, test in pairs(tests) do
@@ -153,28 +162,30 @@ local function run(tests, callback)
     callback(exit_code)
     return
   end
+
   -- iterate over tests
   for name, test in pairs(tests) do
     -- compose testing context
     local tried = 0
     local errors = { }
-    local started_at = UV.now()
+    local started_at = now()
     local ctx = {
       -- raw assertions, returning booleans
       h = A,
       -- must be called at the end of test
       done = function ()
-        local elapsed_time = UV.now() - started_at
+        local elapsed_time = now() - started_at
         -- print test summary
         local color = 'green'
         if #errors > 0 then
           color = 'red'
           exit_code = 1
         end
-        local str = ('%s: %d/%d within %.3f seconds'):format(name, tried, tried + #errors, 0.001 * elapsed_time)
-        print(true and Utils.colorize(color, str) or str)
-        for i, err in ipairs(errors) do
-          print(err)
+        local str = ('%s: %d/%d within %.3f seconds')
+          :format(name, tried, tried + #errors, elapsed_time)
+        print(str)
+        for i = 1, #errors do
+          print(errors[i])
         end
         -- report status
         ntests = ntests - 1
@@ -189,16 +200,21 @@ local function run(tests, callback)
         if v(...) then
           tried = tried + 1
         else
-          p(...)
-          local info = Debug.getinfo(2)
-          Table.insert(errors, ('%s:%s: assertion "%s" failed'):format(info.short_src, info.currentline, k))
+          -- FIXME: should pretty print
+          print(...)
+          local info = debug.getinfo(2)
+          table.insert(
+              errors,
+              ('%s:%s: assertion "%s" failed')
+                :format(info.short_src, info.currentline, k)
+            )
         end
       end
     end
     -- run test
     local status, error = pcall(test, ctx)
     if not status then
-      Table.insert(errors, error)
+      errors[#errors + 1] = error
       ctx.done()
     end
   end
@@ -211,30 +227,30 @@ end
 
 local exit_code = 0
 local function run_suite(files, callback)
-  local file = Table.remove(files)
+  local file = table.remove(files)
   if file == nil then
     callback(exit_code)
   end
-  file = Path.resolve(process.cwd(), file)
-  local status, tests = pcall(require, file)
-  --p('S?', file, status, tests)
+  local status, tests = pcall(loadfile, file)
+  --print('S?', file, status, tests)
   if status then
-    run(tests, function (err)
-      --p('S!', err)
+    run(tests(), function (err)
+      --print('S!', err)
       if err ~= 0 then exit_code = err end
       run_suite(files, callback)
     end)
   else
-    debug(tests)
+    --debug(tests())
     run_suite(files, callback)
   end
 end
 
 --
--- command line arguments should be require()able modules exporting tables of functions
+-- command line arguments should be require()able modules
+-- exporting tables of functions
 --
 
-local files = { } ; for _, file in ipairs(process.argv) do Table.insert(files, file) end
+local files = {...}
 run_suite(files, function (status)
-  process.exit(status)
+  os.exit(status)
 end)
